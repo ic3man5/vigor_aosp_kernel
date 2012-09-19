@@ -1,0 +1,37 @@
+#!/bin/sh
+
+MODULES_DIR=../modules
+PTOOLS_DIR=~/dev/android-sdk-linux/platform-tools
+
+echo "Cleaning old files..."
+rm update.zip
+rm files/system/lib/modules/*.ko
+rm files/boot.img
+
+cp -v ../modules/*.ko files/system/lib/modules/
+cp -v ../boot.img files/boot.img
+
+echo "Creating zip file..."
+cd files
+zip -r update *
+if [ $? -ne 0 ]; then
+	echo -ne "\n\nCreating zip update file failed...\n\n"
+	exit
+fi
+
+cd ..
+mv files/update.zip .
+
+read -p "Would you like to push update.zip to your phone's sdcard (y/n)? " answer
+if [ "$answer" = "y" ]; then
+	$PTOOLS_DIR/adb push update.zip /sdcard/
+else
+	cwd=`pwd`
+	echo "You can find update.zip in ${cwd}"
+fi
+
+read -p "Would you like to reboot into recovery (y/n)? " answer
+if [ "$answer" = "y" ]; then
+	echo "Rebooting into recovery..."
+	$PTOOLS_DIR/adb reboot recovery
+fi

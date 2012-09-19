@@ -19,3 +19,16 @@ find . -name "*.ko" | xargs $TOOLCHAIN/${TOOLCHAIN_PREFIX}strip --strip-unneeded
 
 find . -name "*.ko" -exec cp "{}" ./modules/ \;
 echo "Modules have been moved to ./modules/"
+
+
+read -p "Would you like to create a boot.img file (requires phone/adb) (y/n)? " answer
+if [ "$answer" = "y" ]; then
+	./create_boot_img.sh
+fi
+
+read -p "Would you like to create flashable zip file (y/n)? " answer
+if [ "$answer" = "y" ]; then
+	cd zip_file
+	./update_zip
+	cd ..
+fi
