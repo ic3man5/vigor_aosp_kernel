@@ -18,6 +18,8 @@
 #include <linux/slab.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
+#include <linux/kobject.h>
+#include <linux/sysfs.h>
 #include <asm/mach-types.h>
 #include <linux/irq.h>
 #include <linux/gpio.h>
@@ -46,6 +48,9 @@
 
 /* there is a 32 seconds hw safety timer for boost mode */
 #define TPS65200_CHECK_INTERVAL (15)
+
+int force_fast_charge;
+
 /* Delay 200ms to set original VDPM for preventing vbus voltage dropped & pass MHL spec */
 #define DELAY_MHL_INIT	msecs_to_jiffies(200)
 #define DELAY_KICK_TPS	msecs_to_jiffies(10)
@@ -561,6 +566,48 @@ int tps_set_charger_ctrl(u32 ctl)
 }
 EXPORT_SYMBOL(tps_set_charger_ctrl);
 
+/* sysfs interface */
+static ssize_t force_fast_charge_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+return sprintf(buf, "%d\n", force_fast_charge);
+}
+
+static ssize_t force_fast_charge_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+sscanf(buf, "%du", &force_fast_charge);
+return count;
+}
+
+
+static struct kobj_attribute force_fast_charge_attribute =
+__ATTR(force_fast_charge, 0666, force_fast_charge_show, force_fast_charge_store);
+
+static struct attribute *attrs[] = {
+&force_fast_charge_attribute.attr,
+NULL,
+};
+
+static struct attribute_group attr_group = {
+.attrs = attrs,
+};
+
+static struct kobject *force_fast_charge_kobj;
+
+int force_fast_charge_init(void)
+{
+int retval;
+
+        force_fast_charge_kobj = kobject_create_and_add("fast_charge", kernel_kobj);
+        if (!force_fast_charge_kobj) {
+                return -ENOMEM;
+        }
+        retval = sysfs_create_group(force_fast_charge_kobj, &attr_group);
+        if (retval)
+                kobject_put(force_fast_charge_kobj);
+        return retval;
+}
+/* end sysfs interface */
+
 #if 0
 static int tps65200_detect(struct i2c_client *client, int kind,
 			 struct i2c_board_info *info)
@@ -803,7 +850,7 @@ static struct i2c_driver tps65200_driver = {
 static int __init sensors_tps65200_init(void)
 {
 	int res;
-
+	force_fast_charge = 0;
 	tps65200_low_chg = 0;
 	chg_stat_enabled = 0;
 	spin_lock_init(&chg_stat_lock);
@@ -835,6 +882,7 @@ static void __exit sensors_tps65200_exit(void)
 	kobject_del(kobj);
 
 	kfree(chg_int_data);
+	kobject_put(force_fast_charge_kobj);
 	i2c_del_driver(&tps65200_driver);
 }
 
@@ -843,4 +891,5 @@ MODULE_DESCRIPTION("tps65200 driver");
 MODULE_LICENSE("GPL");
 
 fs_initcall(sensors_tps65200_init);
+module_init(force_fast_charge_init);
 module_exit(sensors_tps65200_exit);
