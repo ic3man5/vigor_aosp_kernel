@@ -464,22 +464,10 @@ int tps_set_charger_ctrl(u32 ctl)
     u8 status = 0;
     last_ctl = ctl;
     batt_charging_state = last_ctl;
-    
+
     /* Lets determine how we should handle everything from msm,
      * after all we are "smart" now and don't care what HTC thinks ;p */
     switch (ctl) {
-    case VDPM_476V:
-        pr_tps_info("VDPM_476V Triggered.\n");
-    case VDPM_ORIGIN_V:
-        if (ctl == VDPM_ORIGIN_V) {
-            pr_tps_info("VDPM_ORIGIN_V Triggered.\n");
-        }
-        /* I don't really understand VDPM 100% yet. */
-        /* VDPM_ORIGIN_V sets VSREG back to 4.4V while
-         * VDPM_476V sets VSREG to 4.76V. Datasheet doesn't
-         * really state anything interesting about it and
-         * I think we should be fine not to up the voltage.
-         * HTC Thunderbolt battery triggers this */
     case ENABLE_LIMITED_CHG:
     case POWER_SUPPLY_ENABLE_WIRELESS_CHARGE:
     case POWER_SUPPLY_ENABLE_SLOW_CHARGE:
@@ -511,7 +499,7 @@ int tps_set_charger_ctrl(u32 ctl)
         if (chg_type != CHG_SLOW || chg_type != CHG_FAST) {
             chg_type = CHG_SLOW;
         }
-        break;    
+        break;
     default:
         pr_tps_info("Error: Unrecognized control (0x%x). This is a bug.\n", ctl);
         chg_type = CHG_DO_NOTHING;
@@ -529,7 +517,7 @@ int tps_set_charger_ctrl(u32 ctl)
         tps65200_i2c_write_byte(0x2A, 0x00);
         tps65200_i2c_write_byte(chg_rate, 0x01);
         tps65200_i2c_write_byte(0xE3, 0x02);
-        tps65200_i2c_write_byte(0x83, 0x03);
+        tps65200_i2c_write_byte(0x87, 0x03);
         tps65200_dump_register();
     } else if (chg_type == CHG_FAST) {
         chg_rate = 0x1;
@@ -540,7 +528,7 @@ int tps_set_charger_ctrl(u32 ctl)
         tps65200_i2c_write_byte(0x2A, 0x00);
         tps65200_i2c_write_byte(chg_rate, 0x01);
         tps65200_i2c_write_byte(0xE3, 0x02);
-        tps65200_i2c_write_byte(0x83, 0x03);
+        tps65200_i2c_write_byte(0x87, 0x03);
         tps65200_dump_register();
     } else if (chg_type == CHG_CHECK) {
         if (ctl == CHECK_INT1) {
